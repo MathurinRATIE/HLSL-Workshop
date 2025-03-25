@@ -1,7 +1,8 @@
-Shader "Unlit/RedShader"
+Shader "Unlit/MonochromeShader"
 {
     Properties
     {
+        _Color("Color",Color)=(1,0,0,1)
     }
     SubShader
     {
@@ -15,6 +16,8 @@ Shader "Unlit/RedShader"
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+
+            fixed4 _Color;
 
             struct vertexInput
             {
@@ -35,7 +38,7 @@ Shader "Unlit/RedShader"
 
             fixed4 frag (vertexOutput i) : SV_Target
             {
-                return fixed4(1,0,0,1);
+                return _Color;
             }
             ENDCG
         }
