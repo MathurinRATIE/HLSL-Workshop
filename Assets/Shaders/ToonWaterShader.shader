@@ -8,6 +8,8 @@ Shader "Unlit/ToonWaterShader"
         _NoiseTex("Noise", 2D) = "white"{}
         _SurfaceNoiseCutoff("Surface Noise Cutoff", Range(0, 1)) = 0.777
         _FoamDistance("Foam Distance", float) = 0.5
+        _Direction("Direction", Color) = (-1, 0, 0)
+        _MovementSpeed("Movement Speed", float) = 0.33
     }
     SubShader
     {
@@ -30,11 +32,13 @@ Shader "Unlit/ToonWaterShader"
             float4 _NoiseTex_ST;
             float _SurfaceNoiseCutoff;
             float _FoamDistance;
+            float2 _Direction;
+            float _MovementSpeed;
 
             struct vertexInput
             {
                 float4 vertex : POSITION;
-                float4 uv : TEXCOORD0;
+                float4 texcoord : TEXCOORD0;
             };
 
             struct vertexOutput
@@ -46,11 +50,12 @@ Shader "Unlit/ToonWaterShader"
 
             vertexOutput vert (vertexInput v)
             {
-                vertexOutput o;
+                vertexOutput o;  
+                v.texcoord.xy += _Time.x * _MovementSpeed * _Direction;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.screenPosition = ComputeScreenPos(o.vertex);
-                //o.noiseUV = TRANSFORM_TEX(v.uv, _NoiseTex_ST);
-                o.noiseUV = v.uv.xy * _NoiseTex_ST.xy + _NoiseTex_ST.zw;
+                //o.noiseUV = TRANSFORM_TEX(v.texcoord, _NoiseTex_ST);
+                o.noiseUV = v.texcoord.xy * _NoiseTex_ST.xy + _NoiseTex_ST.zw;
                 return o;
             }
 
@@ -63,7 +68,7 @@ Shader "Unlit/ToonWaterShader"
                 float waterDepthDifference = saturate(depthDifference / _DepthMaxDistance);
                 float4 waterColor = lerp(_ShallowColor, _DeepColor, waterDepthDifference);
                 
-                float surfaceNoiseSample = tex2D(_NoiseTex, i.noiseUV).r;
+                float surfaceNoiseSample = tex2D(_NoiseTex, i.noiseUV);
                 float foamDepthDifference = saturate(depthDifference / _FoamDistance);
                 float surfaceNoiseCutoff = foamDepthDifference * _SurfaceNoiseCutoff;
                 float surfaceNoise = surfaceNoiseSample > surfaceNoiseCutoff ? 1 : 0;
