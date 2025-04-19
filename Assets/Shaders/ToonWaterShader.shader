@@ -8,8 +8,8 @@ Shader "Unlit/ToonWaterShader"
         _NoiseTex("Noise", 2D) = "white"{}
         _SurfaceNoiseCutoff("Surface Noise Cutoff", Range(0, 1)) = 0.777
         _FoamDistance("Foam Distance", float) = 0.5
-        _Direction("Direction", Color) = (-1, 0, 0)
-        _MovementSpeed("Movement Speed", float) = 0.33
+        _Direction("Direction", Vector) = (-1, 0, 0, 0)
+        _MovementSpeed("Movement Speed", float) = .33
     }
     SubShader
     {
@@ -32,7 +32,7 @@ Shader "Unlit/ToonWaterShader"
             float4 _NoiseTex_ST;
             float _SurfaceNoiseCutoff;
             float _FoamDistance;
-            float2 _Direction;
+            float4 _Direction;
             float _MovementSpeed;
 
             struct vertexInput
@@ -46,15 +46,16 @@ Shader "Unlit/ToonWaterShader"
                 float4 vertex : SV_POSITION;
                 float4 screenPosition : TEXCOORD2;
                 float2 noiseUV : TEXCOORD0;
+                float displacement: Displacement;
             };
 
             vertexOutput vert (vertexInput v)
             {
                 vertexOutput o;  
-                v.texcoord.xy += _Time.x * _MovementSpeed * _Direction;
+                o.displacement = tex2Dlod(_NoiseTex, float4(v.texcoord * _NoiseTex_ST + float2(sin(_Time.x / 7) / 3, sin(_Time.x / 7)), v.texcoord * _NoiseTex_ST.zw));
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.screenPosition = ComputeScreenPos(o.vertex);
-                //o.noiseUV = TRANSFORM_TEX(v.texcoord, _NoiseTex_ST);
+                v.texcoord.xy += _Time.x * _MovementSpeed * _Direction.xy;
                 o.noiseUV = v.texcoord.xy * _NoiseTex_ST.xy + _NoiseTex_ST.zw;
                 return o;
             }
@@ -67,6 +68,8 @@ Shader "Unlit/ToonWaterShader"
                 
                 float waterDepthDifference = saturate(depthDifference / _DepthMaxDistance);
                 float4 waterColor = lerp(_ShallowColor, _DeepColor, waterDepthDifference);
+
+                waterColor *= i.displacement * 5;
                 
                 float surfaceNoiseSample = tex2D(_NoiseTex, i.noiseUV);
                 float foamDepthDifference = saturate(depthDifference / _FoamDistance);
